@@ -9,7 +9,7 @@ async def set_admin_status(tg_id: int, status: bool):
             await session.execute(update(Users).where(Users.tg_id == tg_id).values(is_admin=status))
             await session.commit()
     except Exception as e:
-        print(e)
+        print('Ошибка в функции set_admin_status:', e)
         return None
     finally:
         await db.close()
@@ -24,7 +24,7 @@ async def get_admins_orm():
             )
             return result.scalars().all()
     except Exception as e:
-        print(f'Ошибка при получении администраторов: {e}')
+        print('Ошибка в функции get_admins_orm:', e)
         return None
     finally:
         await db.close()
@@ -37,5 +37,5 @@ async def delete_admin_orm(tg_id: int):
             await session.execute(update(Users).where(Users.tg_id == tg_id).values(is_admin=False))
             await session.commit()
     except Exception as e:
-        print(e)
+        print('Ошибка в функции delete_admin_orm:', e)
         return None

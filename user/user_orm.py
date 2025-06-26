@@ -1,4 +1,3 @@
-
 from sqlalchemy import select
 from database.engine import Users
 from database.engine import Database
@@ -12,7 +11,7 @@ async def create_user(tg_id: int):
             await session.commit()
             return user
     except Exception as e:
-        print(e)
+        print('Ошибка в функции create_user:', e)
         return None
     finally:
         await db.close()
@@ -25,7 +24,7 @@ async def get_user(tg_id: int):
             user = await session.execute(select(Users).where(Users.tg_id == tg_id))
             return user.scalar_one_or_none()
     except Exception as e:
-        print(e)
+        print('Ошибка в функции get_user:', e)
         return None
     finally:
         await db.close()
@@ -43,7 +42,7 @@ async def decrement_free_period(tg_id: int):
                 return user.free_period
             return None
     except Exception as e:
-        print(e)
+        print('Ошибка в функции decrement_free_period:', e)
         return None
     finally:
         await db.close()        
@@ -60,7 +59,7 @@ async def add_balance(tg_id: int, amount: int):
                 return user
             return None
     except Exception as e:
-        print(e)
+        print('Ошибка в функции add_balance:', e)
         return None
     finally:
         await db.close()
@@ -73,7 +72,7 @@ async def get_balance(tg_id: int):
             user = result.scalar_one_or_none()
             return user.balance
     except Exception as e:
-        print(e)
+        print('Ошибка в функции get_balance:', e)
         return None
     finally:
         await db.close()
@@ -91,7 +90,7 @@ async def decrement_balance(tg_id: int, amount: int):
                 return user
             return False
     except Exception as e:
-        print(e)
+        print('Ошибка в функции decrement_balance:', e)
         return None
     finally:
         await db.close()
@@ -107,7 +106,7 @@ async def get_free_period(tg_id: int):
                 return 1
             return user.free_period
     except Exception as e:
-        print(e)
+        print('Ошибка в функции get_free_period:', e)
         return None
     finally:
         await db.close()
