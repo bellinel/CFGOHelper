@@ -74,15 +74,17 @@ async def handle_document(msg: Message, bot: Bot):
 
     await bot.download_file(file_path, destination=save_path)
 
-    if ext == "txt":
-        content = await read_txt(save_path)
-    elif ext == "docx":
-        content = await read_docx(save_path)
-    elif ext == "pdf":
-        content = await read_pdf(save_path)
-    else:
-        await msg.answer("❌ Поддерживаются только .txt, .docx и .pdf файлы.")
-        return
-    
-    return content
-
+    try:
+        if ext == "txt":
+            content = await read_txt(save_path)
+        elif ext == "docx":
+            content = await read_docx(save_path)
+        elif ext == "pdf":
+            content = await read_pdf(save_path)
+        else:
+            await msg.answer("❌ Поддерживаются только .txt, .docx и .pdf файлы.")
+            return
+        return content
+    finally:
+        if os.path.exists(save_path):
+            os.remove(save_path)

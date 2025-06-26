@@ -61,7 +61,7 @@ class Users(Base):
     __tablename__ = "messages"
 
     id = Column(Integer, primary_key=True)
-    tg_id = Column(String, nullable=False)
+    tg_id = Column(String, nullable=False, unique=True)
     balance = Column(Integer, nullable=False)
     free_period = Column(Integer, nullable=False, default=3)
     is_admin = Column(Boolean, nullable=False, default=False)
