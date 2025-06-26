@@ -1,0 +1,17 @@
+# Не добавлять .env файл
+.env
+# Кэш и временные файлы
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+build/
+dist/
+*.egg-info/
+.DS_Store
+.idea/
+.vscode/
+downloads/ 
