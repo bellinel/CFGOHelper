@@ -15,4 +15,16 @@ dist/
 .idea/
 .vscode/
 downloads/
-bot.db 
+bot.db
+
+# Конфиденциальные файлы и токены
+token.json
+service_account.json
+credentials.json
+*.key
+*.pem
+*.p12
+*.pfx
+
+# База данных
+bot.db-journal 

@@ -1,16 +1,19 @@
-import os
+
 from aiogram import Router, F, Bot
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 
 from user.user_orm import get_user, create_user, get_free_period, decrement_free_period
-from user.utils import read_txt, read_docx, read_pdf, markdown_bold_to_html
-from utils.get_yandex_gpt import yandex_gpt_async
+from user.utils import handle_document, markdown_bold_to_html, remove_square_brackets, save_gpt_response, delete_local_file
+from utils.get_yandex_gpt import yandex_gpt_async, yandex_gpt_save_vacancy
 from user.user_kb import get_start_kb
 from user.text_message import TextMessage
 from user.states import UserStates
+from datetime import datetime
 
+from utils.upload_google_drive import upload_file
+from utils.google_upload import upload_dict_to_sheet, get_last_row_number
 
 
 user_router = Router()
@@ -39,9 +42,9 @@ async def scan_resume(callback: CallbackQuery, state: FSMContext):
 @user_router.message(UserStates.scan_resume_first)
 async def scan_resume_first(message: Message, state: FSMContext, bot: Bot):
     if message.document:
-        content = await handle_document(message, bot)
+        content, file_path = await handle_document(message, bot)
         print(content)
-        await state.update_data(resume=content)
+        await state.update_data(resume=content, file_path = file_path)
     else:
         await state.update_data(resume=message.text)
     await message.answer(TextMessage.SCAN_RESUME_SECOND_MESSAGE)
@@ -54,37 +57,59 @@ async def scan_resume_second(message: Message, state: FSMContext):
     data = await state.get_data()
     resume = data.get('resume') 
     vacancy = data.get('vacancy')
-    await message.answer(markdown_bold_to_html(await yandex_gpt_async(resume, vacancy)), parse_mode='HTML')
-    free_period = await decrement_free_period(message.from_user.id)
-    if free_period is None:
-        await message.answer('У вас закончился бесплатный период')
-        return
+    gpt_response = await yandex_gpt_async(resume, vacancy)
+    await message.answer(markdown_bold_to_html(gpt_response), parse_mode='HTML')
+    await start_command(message)
+    await decrement_free_period(message.from_user.id)
+    data_for_google_table = await yandex_gpt_save_vacancy(resume, vacancy)
+    data_for_google_table = remove_square_brackets(data_for_google_table)
+    name_candidate = data_for_google_table.get('ФИО')
+    last_number = get_last_row_number()
+    date = datetime.now().strftime('%d.%m.%Y')
+    file_path_gpt, name_file_gpt = save_gpt_response(name_candidate, gpt_response, date, last_number)
+
+    if message.from_user.username:
+        tg_user = f'@{message.from_user.username}'
+    else:
+        tg_user = f'<a href="tg://user?id={message.from_user.id}">{message.from_user.first_name}</a>'
+        
+    date = datetime.now().strftime('%d.%m.%Y')
+    
+
+    file_link = None
+    file_link_gpt = None
+    try:
+        file_path = data.get('file_path')
+        
+        
+    except:
+        file_path = None
+        
+    if file_path:
+        file_link = upload_file(file_path, f'{name_file_gpt}_CV')
+        
+        delete_local_file(file_path)
+    if file_path_gpt:
+        file_link_gpt = upload_file(file_path_gpt, f'{name_file_gpt}_Скрининг')
+        delete_local_file(file_path_gpt)
+        
+    
+    if file_link and file_link_gpt:
+        data_for_google_table['Ссылка на резюме'] = str(file_link)
+        data_for_google_table['Ссылка на рекомендации'] = str(file_link_gpt)
+        data_for_google_table['Пользователь'] = tg_user
+        data_for_google_table['Дата создания'] = date
+    else:
+        data_for_google_table['Ссылка на резюме'] = 'Не удалось загрузить резюме'
+        data_for_google_table['Ссылка на рекомендации'] = 'Не удалось загрузить рекомендации'
+        data_for_google_table['Пользователь'] = tg_user
+        data_for_google_table['Дата создания'] = date
+    upload_dict_to_sheet(data_for_google_table , last_number)
+    
+    
+    
     await state.clear()
     
 
 
-async def handle_document(msg: Message, bot: Bot):
-    file_info = await bot.get_file(msg.document.file_id)
-    file_path = file_info.file_path
-    file_name = msg.document.file_name
-    ext = file_name.split('.')[-1].lower()
 
-    save_path = f"downloads/{file_name}"
-    os.makedirs("downloads", exist_ok=True)
-
-    await bot.download_file(file_path, destination=save_path)
-
-    try:
-        if ext == "txt":
-            content = await read_txt(save_path)
-        elif ext == "docx":
-            content = await read_docx(save_path)
-        elif ext == "pdf":
-            content = await read_pdf(save_path)
-        else:
-            await msg.answer("❌ Поддерживаются только .txt, .docx и .pdf файлы.")
-            return
-        return content
-    finally:
-        if os.path.exists(save_path):
-            os.remove(save_path)
