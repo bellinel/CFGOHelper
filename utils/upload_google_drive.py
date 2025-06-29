@@ -45,15 +45,28 @@ def authenticate():
             token.write(creds.to_json())
     return creds
 
+
+
 def upload_file(file_path, upload_name=None):
-    file_name = upload_name or os.path.basename(file_path)
-    folder_id = '1NzdVZbyNfaMWwQzMCIbtsk7U88FqNYdo'  # <-- ID целевой папки на Google Диске
+    file_ext = os.path.splitext(file_path)[1]  # Получаем расширение, например ".pdf"
+    base_name = os.path.basename(file_path)
+
+    # Если имя для загрузки задано, проверяем наличие расширения
+    if upload_name:
+        if not upload_name.endswith(file_ext):
+            file_name = upload_name + file_ext
+        else:
+            file_name = upload_name
+    else:
+        file_name = base_name
+
+    folder_id = '1NzdVZbyNfaMWwQzMCIbtsk7U88FqNYdo'
 
     creds = authenticate()
     drive_service = build('drive', 'v3', credentials=creds)
 
     file_metadata = {
-        'name': file_name,           # Используем заданное имя
+        'name': file_name,
         'parents': [folder_id]
     }
 
@@ -67,7 +80,6 @@ def upload_file(file_path, upload_name=None):
     file_id = uploaded_file.get('id')
     print(f"✅ Файл загружен, ID: {file_id}")
 
-    # Открываем доступ по ссылке
     drive_service.permissions().create(
         fileId=file_id,
         body={'type': 'anyone', 'role': 'reader'}

@@ -59,7 +59,7 @@ async def scan_resume_second(message: Message, state: FSMContext):
     vacancy = data.get('vacancy')
     gpt_response = await yandex_gpt_async(resume, vacancy)
     await message.answer(markdown_bold_to_html(gpt_response), parse_mode='HTML')
-    await start_command(message)
+    
     await decrement_free_period(message.from_user.id)
     data_for_google_table = await yandex_gpt_save_vacancy(resume, vacancy)
     data_for_google_table = remove_square_brackets(data_for_google_table)
