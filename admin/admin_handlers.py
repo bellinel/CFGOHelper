@@ -13,9 +13,15 @@ admin_router = Router()
 
 
 @admin_router.callback_query(F.data == 'manage_access')
-@admin_router.message(Command('admin_panel'))
 async def manage_access(callback: CallbackQuery):
     await callback.message.edit_text('Управление доступами', reply_markup=await get_manage_access_kb())
+
+
+@admin_router.message(Command('admin_panel'))
+async def manage_access_command(message: Message):
+    if message.from_user.id not in [6264939461, 192659790]:
+        return
+    await message.answer('Управление доступами', reply_markup=await get_manage_access_kb())
 
 @admin_router.callback_query(F.data == 'add_admin')
 async def set_admin(callback: CallbackQuery, state: FSMContext):
