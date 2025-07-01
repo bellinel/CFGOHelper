@@ -20,7 +20,7 @@ async def get_admins_orm():
     try:
         async with db.session_factory() as session:
             result = await session.execute(
-                select(Users).where(Users.is_admin == True)
+                select(Users).where(Users.is_admin == True).order_by(Users.tg_id)
             )
             return result.scalars().all()
     except Exception as e:

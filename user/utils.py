@@ -1,10 +1,12 @@
+import asyncio
 from docx import Document as DocxDocument
 import PyPDF2
 import re
 import os
 from aiogram import Bot
 from aiogram.types import Message
-
+import requests
+from bs4 import BeautifulSoup
 
 
 async def read_txt(path):
@@ -73,10 +75,12 @@ async def handle_document(msg: Message, bot: Bot):
             content = await read_pdf(save_path)
         else:
             await msg.answer("❌ Поддерживаются только .txt, .docx и .pdf файлы.")
+            await delete_local_file(save_path)
             return
         return content , save_path
     except Exception as e:
         await msg.answer(f"❌ Ошибка при обработке файла: {e}")
+        await delete_local_file(save_path)
         return None, None
     
 def save_gpt_response(name_candidate, gpt_response, date, last_number):
@@ -115,3 +119,51 @@ def remove_square_brackets(obj):
         return ', '.join(str(item) for item in obj)
     else:
         return obj
+    
+
+async def send_analize_hh_text(url,message: Message):
+    a = await message.answer('Подождите минутку, я получаю текст вакансии...')
+    text_vacancy = await analize_hh_url_async(url)
+    if text_vacancy:
+        await a.delete()
+        return text_vacancy
+    else:
+        await a.delete()
+        await message.answer('Поддерживаются только ссылки на вакансии с hh.ru')
+        return None
+
+
+
+
+import aiohttp
+from bs4 import BeautifulSoup
+
+async def analize_hh_url_async(url: str):
+    if not url.startswith('https://hh.ru/vacancy/'):
+        return None
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+    }
+
+    async with aiohttp.ClientSession(headers=headers) as session:
+        async with session.get(url) as response:
+            if response.status != 200:
+                return f"Ошибка {response.status}"
+
+            html = await response.text()
+            soup = BeautifulSoup(html, 'lxml')
+
+            try:
+                title = soup.find('div', class_='vacancy-title').find('h1').text.strip()
+                desc_block = soup.find('div', class_='vacancy-description').find('div', class_='vacancy-section')
+                if not desc_block:
+                    desc_block = soup.find('div', class_='g-user-content')  # fallback
+                description = desc_block.text.strip()
+                lines = [line.strip() for line in description.splitlines() if line.strip()]
+                cleaned_description = '\n'.join(lines)
+                return f"{title}\n\n{cleaned_description}"
+            except:
+                return None
+
+    

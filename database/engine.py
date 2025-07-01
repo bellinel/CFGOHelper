@@ -62,6 +62,7 @@ class Users(Base):
 
     id = Column(Integer, primary_key=True)
     tg_id = Column(String, nullable=False, unique=True)
+    name = Column(String, nullable=False)
     balance = Column(Integer, nullable=False)
     free_period = Column(Integer, nullable=False, default=3)
     is_admin = Column(Boolean, nullable=False, default=False)

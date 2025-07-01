@@ -2,11 +2,11 @@ from sqlalchemy import select
 from database.engine import Users
 from database.engine import Database
 
-async def create_user(tg_id: int):
+async def create_user(tg_id: int, name: str):
     db = Database()
     try:
         async with db.session_factory() as session:
-            user = Users(tg_id=tg_id, balance=0, free_period=3)
+            user = Users(tg_id=tg_id, name=name, balance=0, free_period=3)
             session.add(user)
             await session.commit()
             return user
@@ -107,6 +107,22 @@ async def get_free_period(tg_id: int):
             return user.free_period
     except Exception as e:
         print('Ошибка в функции get_free_period:', e)
+        return None
+    finally:
+        await db.close()
+
+async def increment_free_period(tg_id: int, packages: int):
+    db = Database()
+    try:
+        async with db.session_factory() as session:
+            result = await session.execute(select(Users).where(Users.tg_id == tg_id))
+            user = result.scalar_one_or_none()
+            if user:
+                user.free_period += packages
+                await session.commit()
+                return user.free_period
+    except Exception as e:
+        print('Ошибка в функции increment_free_period:', e)
         return None
     finally:
         await db.close()
