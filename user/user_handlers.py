@@ -21,8 +21,8 @@ load_dotenv()
 
 user_router = Router()
 CHANNEL_ID = os.getenv('CHANNEL_ID')
-PROVIDER_TOKEN = os.getenv('PROVIDER_TOKEN')
-print(PROVIDER_TOKEN)
+
+
 
 @user_router.message(Command('start'))
 async def start_command(message: Message, state: FSMContext):
