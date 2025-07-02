@@ -68,7 +68,8 @@ async def set_vip_status(tg_id: int, status: bool):
     db = Database()
     try:
         async with db.session_factory() as session:
-            user = await session.execute(select(Users).where(Users.tg_id == tg_id)).scalar_one_or_none()
+            user = await session.execute(select(Users).where(Users.tg_id == tg_id))
+            user = user.scalar_one_or_none()
             if user and user.is_vip == status:
                 return None
             else:
