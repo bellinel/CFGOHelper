@@ -36,9 +36,6 @@ async def start_command(message: Message, state: FSMContext):
 async def start_command(message: Message, bot: Bot, state: FSMContext):
     await state.clear()
 
-    if message.from_user.id in [6264939461, 192659790]:
-        await message.answer(TextMessage.START_MESSAGE, reply_markup=await get_super_admin_kb())
-        return
 
     member = await bot.get_chat_member(chat_id=CHANNEL_ID, user_id=message.from_user.id)
     if member.status not in ["member", "administrator", "creator"]:
@@ -53,6 +50,11 @@ async def start_command(message: Message, bot: Bot, state: FSMContext):
             name = message.from_user.first_name
         await create_user(message.from_user.id, name)
         
+    
+    if message.from_user.id in [6264939461, 192659790]:
+        await message.answer(TextMessage.START_MESSAGE, reply_markup=await get_super_admin_kb())
+        return
+    
     if user and user.is_admin:
         await message.answer(TextMessage.START_MESSAGE, reply_markup=await get_admin_kb())
         return
