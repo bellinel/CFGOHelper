@@ -9,13 +9,13 @@ async def delete_admin_kb(tg_id: int):
 async def get_admin_kb():
     kb = InlineKeyboardBuilder()
     kb.button(text='Сканировать резюме', callback_data='scan_resume')
-    kb.button(text='Управление доступами', callback_data='manage_access')
     kb.button(text='Оплата услуг', callback_data='payment')
+    kb.button(text='Управление VIP пользователями', callback_data='manage_vip_users')
     kb.adjust(1)
     return kb.as_markup(resize_keyboard=True)
 
 
-async def get_manage_access_kb():
+async def get_manage_admins_kb():
     '''
     Клавиатура для управления доступом
     Добавить админа - каллбэк add_admin
@@ -28,3 +28,25 @@ async def get_manage_access_kb():
     return kb.as_markup(resize_keyboard=True)
 
 
+async def get_super_admin_kb():
+    kb = InlineKeyboardBuilder()
+    kb.button(text='Сканировать резюме', callback_data='scan_resume')
+    kb.button(text='Оплата услуг', callback_data='payment')
+    kb.button(text='Управление VIP пользователями', callback_data='manage_vip_users')
+    kb.button(text='Управление админами', callback_data='manage_admins')
+    kb.adjust(1)
+    return kb.as_markup(resize_keyboard=True)
+
+
+async def get_manage_vip_users_kb():
+    kb = InlineKeyboardBuilder()
+    kb.button(text='Показать список VIP пользователей', callback_data='get_vip_users')
+    kb.button(text='Добавить VIP пользователя', callback_data='add_vip')
+    kb.adjust(1)
+    return kb.as_markup(resize_keyboard=True)
+
+
+async def delete_vip_kb(tg_id: int):
+    kb = InlineKeyboardBuilder()
+    kb.button(text='Убрать VIP статус', callback_data=f'delete_vip_{tg_id}')
+    return kb.as_markup(resize_keyboard=True)

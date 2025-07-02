@@ -66,6 +66,7 @@ class Users(Base):
     balance = Column(Integer, nullable=False)
     free_period = Column(Integer, nullable=False, default=3)
     is_admin = Column(Boolean, nullable=False, default=False)
+    is_vip = Column(Boolean, nullable=False, default=False)
 
 
 

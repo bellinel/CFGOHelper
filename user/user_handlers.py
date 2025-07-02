@@ -14,7 +14,7 @@ from user.states import UserStates
 from datetime import datetime
 from utils.upload_google_drive import upload_file
 from utils.google_upload import upload_dict_to_sheet, get_last_row_number
-from admin.admin_kb import get_admin_kb
+from admin.admin_kb import get_admin_kb, get_super_admin_kb
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -35,6 +35,11 @@ async def start_command(message: Message, state: FSMContext):
 @user_router.message(Command('main_menu'))
 async def start_command(message: Message, bot: Bot, state: FSMContext):
     await state.clear()
+
+    if message.from_user.id in [6264939461, 192659790]:
+        await message.answer(TextMessage.START_MESSAGE, reply_markup=await get_super_admin_kb())
+        return
+
     member = await bot.get_chat_member(chat_id=CHANNEL_ID, user_id=message.from_user.id)
     if member.status not in ["member", "administrator", "creator"]:
         await message.answer(TextMessage.CHANNEL_MESSAGE)
@@ -51,6 +56,7 @@ async def start_command(message: Message, bot: Bot, state: FSMContext):
     if user and user.is_admin:
         await message.answer(TextMessage.START_MESSAGE, reply_markup=await get_admin_kb())
         return
+    
     await message.answer(TextMessage.START_MESSAGE, reply_markup=await get_start_kb())
 
 
@@ -59,7 +65,7 @@ async def start_command(message: Message, bot: Bot, state: FSMContext):
 async def scan_resume(callback: CallbackQuery, state: FSMContext):
     free_period = await get_free_period(callback.from_user.id)
     user = await get_user(callback.from_user.id)
-    if user and not user.is_admin:
+    if user and not user.is_admin and not user.is_vip and callback.from_user.id not in [6264939461, 192659790]:
         if free_period == 0:
             await callback.message.answer('у вас закончились бесплатные попытки, вам необходимо купить новый пакет Скрининга')
             await payment_menu(callback)
@@ -106,7 +112,7 @@ async def scan_resume_second(message: Message, state: FSMContext):
     gpt_response = await yandex_gpt_async(resume, vacancy)
     await message.answer(markdown_bold_to_html(gpt_response), parse_mode='HTML')
     user = await get_user(message.from_user.id)
-    if user and not user.is_admin:
+    if user and not user.is_admin and not user.is_vip and message.from_user.id not in [6264939461, 192659790]:
         await decrement_free_period(message.from_user.id)
         
     data_for_google_table = await yandex_gpt_save_vacancy(resume, vacancy)
