@@ -8,7 +8,7 @@ import os
 from user.user_orm import get_user, create_user, get_free_period, decrement_free_period, increment_free_period
 from user.utils import handle_document, markdown_bold_to_html, remove_square_brackets, save_gpt_response, delete_local_file, send_analize_hh_text
 from utils.get_yandex_gpt import yandex_gpt_async, yandex_gpt_save_vacancy
-from user.user_kb import get_start_kb, get_payment_kb, payment_amount_kb
+from user.user_kb import get_start_kb, get_payment_kb, payment_amount_kb, get_back_to_main_menu_kb
 from user.text_message import TextMessage
 from user.states import UserStates
 from datetime import datetime
@@ -21,6 +21,10 @@ load_dotenv()
 
 user_router = Router()
 CHANNEL_ID = os.getenv('CHANNEL_ID')
+
+ADMIN_ID = os.getenv('ADMIN_ID').split(',')
+ADMIN_ID = [int(id) for id in ADMIN_ID]
+
 
 
 
@@ -51,7 +55,7 @@ async def start_command(message: Message, bot: Bot, state: FSMContext):
         await create_user(message.from_user.id, name)
         
     
-    if message.from_user.id in [6264939461, 192659790]:
+    if message.from_user.id in ADMIN_ID:
         await message.answer(TextMessage.START_MESSAGE, reply_markup=await get_super_admin_kb())
         return
     
@@ -67,14 +71,15 @@ async def start_command(message: Message, bot: Bot, state: FSMContext):
 async def scan_resume(callback: CallbackQuery, state: FSMContext):
     free_period = await get_free_period(callback.from_user.id)
     user = await get_user(callback.from_user.id)
-    if user and not user.is_admin and not user.is_vip and callback.from_user.id not in [6264939461, 192659790]:
+    if user and not user.is_admin and not user.is_vip and callback.from_user.id not in ADMIN_ID:
         if free_period == 0:
-            await callback.message.answer('у вас закончились бесплатные попытки, вам необходимо купить новый пакет Скрининга')
+            
+            await callback.answer('У вас закончились бесплатные попытки, вам необходимо купить новый пакет Скрининга', show_alert=True)
             await payment_menu(callback)
             return
     
     
-    await callback.message.answer(TextMessage.SCAN_RESUME_FIRST_MESSAGE)
+    await callback.message.edit_text(TextMessage.SCAN_RESUME_FIRST_MESSAGE, reply_markup=await get_back_to_main_menu_kb())
     await state.set_state(UserStates.scan_resume_first)
 
 @user_router.message(UserStates.scan_resume_first)
@@ -114,7 +119,7 @@ async def scan_resume_second(message: Message, state: FSMContext):
     gpt_response = await yandex_gpt_async(resume, vacancy)
     await message.answer(markdown_bold_to_html(gpt_response), parse_mode='HTML')
     user = await get_user(message.from_user.id)
-    if user and not user.is_admin and not user.is_vip and message.from_user.id not in [6264939461, 192659790]:
+    if user and not user.is_admin and not user.is_vip and message.from_user.id not in ADMIN_ID:
         await decrement_free_period(message.from_user.id)
         
     data_for_google_table = await yandex_gpt_save_vacancy(resume, vacancy)
@@ -178,10 +183,23 @@ async def scan_resume_second(message: Message, state: FSMContext):
     await state.clear()
     
 
+@user_router.callback_query(F.data == 'back_to_main_menu')
+async def back_to_main_menu(callback: CallbackQuery):
+    user = await get_user(callback.from_user.id)
+    if callback.from_user.id in ADMIN_ID:
+        await callback.message.edit_text(TextMessage.START_MESSAGE, reply_markup=await get_super_admin_kb())
+    elif user and user.is_admin:
+        await callback.message.edit_text(TextMessage.START_MESSAGE, reply_markup=await get_admin_kb())
+    else:
+        await callback.message.edit_text(TextMessage.START_MESSAGE, reply_markup=await get_start_kb())
+
 
 @user_router.callback_query(F.data == 'payment')
 async def payment_menu(callback: CallbackQuery):
+    
     await callback.message.edit_text(TextMessage.PAYMENT_MESSAGE, reply_markup=await get_payment_kb())
+
+
 
 
 @user_router.callback_query(F.data.startswith('payment_'))

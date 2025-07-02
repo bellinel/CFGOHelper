@@ -25,6 +25,7 @@ async def get_payment_kb():
     kb.button(text='10 скринингов - 750 р.', callback_data='payment_10')
     kb.button(text='20 скринингов - 1200 р.', callback_data='payment_20')
     kb.button(text='50 скринингов - 2500 р.', callback_data='payment_50')
+    kb.button(text='Назад', callback_data='back_to_main_menu')
     
     kb.adjust(1)
     return kb.as_markup(resize_keyboard=True)
@@ -39,7 +40,11 @@ async def payment_amount_kb(amount: int):
 
 
 
-
+async def get_back_to_main_menu_kb():
+    kb = InlineKeyboardBuilder()
+    kb.button(text='Назад', callback_data='back_to_main_menu')
+    kb.adjust(1)
+    return kb.as_markup(resize_keyboard=True)
 
 
 

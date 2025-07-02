@@ -24,6 +24,7 @@ async def get_manage_admins_kb():
     kb = InlineKeyboardBuilder()
     kb.button(text='Добавить админа', callback_data='add_admin')
     kb.button(text='Показать список админов', callback_data='get_admins')
+    kb.button(text='Назад', callback_data='back_to_main_menu')
     kb.adjust(1)
     return kb.as_markup(resize_keyboard=True)
 
@@ -42,6 +43,7 @@ async def get_manage_vip_users_kb():
     kb = InlineKeyboardBuilder()
     kb.button(text='Показать список VIP пользователей', callback_data='get_vip_users')
     kb.button(text='Добавить VIP пользователя', callback_data='add_vip')
+    kb.button(text='Назад', callback_data='back_to_main_menu')
     kb.adjust(1)
     return kb.as_markup(resize_keyboard=True)
 

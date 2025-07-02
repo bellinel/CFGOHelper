@@ -4,12 +4,21 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 import asyncio
 
-from admin.admin_kb import delete_admin_kb, get_manage_admins_kb, get_manage_vip_users_kb, delete_vip_kb
+from admin.admin_kb import delete_admin_kb, get_manage_admins_kb, get_manage_vip_users_kb, delete_vip_kb, get_admin_kb, get_super_admin_kb
 from admin.admin_orm import set_admin_status, get_admins_orm, delete_admin_orm, get_vip_users_orm, delete_vip_orm, set_vip_status
 from admin.state import AdminStates
 from user.user_orm import get_user
+from user.text_message import TextMessage
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 admin_router = Router()
+
+ADMIN_ID = os.getenv('ADMIN_ID').split(',')
+ADMIN_ID = [int(id) for id in ADMIN_ID]
+
 
 
 @admin_router.callback_query(F.data == 'manage_admins')
@@ -18,7 +27,7 @@ async def manage_access(callback: CallbackQuery):
 
 @admin_router.callback_query(F.data == 'add_admin')
 async def set_admin(callback: CallbackQuery, state: FSMContext):
-    if callback.from_user.id not in [6264939461, 192659790]:
+    if callback.from_user.id not in ADMIN_ID:
         return
     await callback.message.answer('Введите ID пользователя')
     await state.set_state(AdminStates.set_admin)
@@ -37,7 +46,7 @@ async def set_admin_id(message: Message, state: FSMContext):
 
 @admin_router.callback_query(F.data == 'get_admins')
 async def get_admins(callback: CallbackQuery):
-    if callback.from_user.id not in [6264939461, 192659790]:
+    if callback.from_user.id not in ADMIN_ID:
         return
     admins = await get_admins_orm()
     if admins:
@@ -102,3 +111,4 @@ async def set_vip_id(message: Message, state: FSMContext):
     await message.answer(f'Пользователь {user.name} - {user.tg_id}\nтеперь VIP')
     await set_vip_status(user_id, True)
     await state.clear()
+
