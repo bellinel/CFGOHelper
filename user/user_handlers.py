@@ -16,11 +16,13 @@ from utils.upload_google_drive import upload_file
 from utils.google_upload import upload_dict_to_sheet, get_last_row_number
 from admin.admin_kb import get_admin_kb, get_super_admin_kb
 from dotenv import load_dotenv
-
+import json
 load_dotenv()
 
 user_router = Router()
 CHANNEL_ID = os.getenv('CHANNEL_ID')
+PROVIDER_TOKEN = os.getenv('PROVIDER_TOKEN')
+print(PROVIDER_TOKEN)
 
 ADMIN_ID = os.getenv('ADMIN_ID').split(',')
 ADMIN_ID = [int(id) for id in ADMIN_ID]
@@ -196,7 +198,6 @@ async def back_to_main_menu(callback: CallbackQuery):
 
 @user_router.callback_query(F.data == 'payment')
 async def payment_menu(callback: CallbackQuery):
-    
     await callback.message.edit_text(TextMessage.PAYMENT_MESSAGE, reply_markup=await get_payment_kb())
 
 
@@ -213,40 +214,41 @@ async def payment_amount(callback: CallbackQuery):
         price = 1200
     elif amount == '50':
         price = 2500
-    await callback.message.edit_text(f'Вы выбрали {amount} пакетов', reply_markup=await payment_amount_kb(price))
+    await callback.message.edit_text(f'Вы выбрали {amount} пакетов', reply_markup=await payment_amount_kb(amount, price))
 
 
 
     
-# @user_router.callback_query(F.data.startswith('start_payment_'))
-# async def payment_amount_callback(callback: CallbackQuery, bot: Bot):
-#     amount = int(callback.data.split('_')[-1])
-#     await bot.send_invoice(
-#         chat_id=callback.from_user.id,
-#         title='Покупка пакетов',
-#         description=f'Покупка {amount} пакетов',
-#         payload=f'payment_{amount}_packages',
-#         provider_token=PROVIDER_TOKEN,
-#         currency='RUB',
-#         prices=[
-#             LabeledPrice(
-#                 label=f'{amount} пакетов',
-#                 amount=amount * 250 * 100
-#             )
-#         ]
-#     )
-#     await callback.answer()
+@user_router.callback_query(F.data.startswith('start_payment_'))
+async def payment_amount_callback(callback: CallbackQuery, bot: Bot):
+    amount = int(callback.data.split('_')[-1])
+    price = int(callback.data.split('_')[-2])
+    await bot.send_invoice(
+        chat_id=callback.from_user.id,
+        title='Покупка пакетов',
+        description=f'Покупка {amount} пакетов',
+        payload=json.dumps({'amount': amount, 'price': price}),
+        provider_token=PROVIDER_TOKEN,
+        currency='RUB',
+        prices=[
+            LabeledPrice(
+                label=f'{amount} пакетов',
+                amount=price * 100
+            )
+        ]
+    )
+    await callback.answer()
     
     
-# @user_router.pre_checkout_query(lambda query: True)
-# async def pre_checkout_query(pre_checkout_query: PreCheckoutQuery, bot: Bot):
-#     await bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
+@user_router.pre_checkout_query(lambda query: True)
+async def pre_checkout_query(pre_checkout_query: PreCheckoutQuery, bot: Bot):
+    await bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
     
     
-# @user_router.message(F.content_type == types.ContentType.SUCCESSFUL_PAYMENT)
-# async def successful_payment(message: Message):
-#     amount = message.successful_payment.total_amount // 100
-#     print(f"✅ Успешная оплата: {amount}₽")
-#     packages = amount // 250
-#     await increment_free_period(message.from_user.id, packages)
-#     await message.answer("Спасибо за оплату!")
+@user_router.message(F.content_type == types.ContentType.SUCCESSFUL_PAYMENT)
+async def successful_payment(message: Message):
+    payload = json.loads(message.successful_payment.payload)
+    print(f"✅ Успешная оплата: {payload.get('price')}₽")
+    packages = payload.get('amount')
+    await increment_free_period(message.from_user.id, packages)
+    await message.answer(f"Спасибо за оплату! Вам начислено {packages} пакетов", reply_markup=await get_back_to_main_menu_kb())

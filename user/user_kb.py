@@ -15,7 +15,7 @@ async def get_start_kb():
     # kb.button(text='Прислать резюме', callback_data='send_resume')
     # kb.button(text='Разместить вакансию', callback_data='post_vacancy')
     kb.adjust(1)
-    return kb.as_markup(resize_keyboard=True)
+    return kb.as_markup()
 
 
 
@@ -28,15 +28,16 @@ async def get_payment_kb():
     kb.button(text='Назад', callback_data='back_to_main_menu')
     
     kb.adjust(1)
-    return kb.as_markup(resize_keyboard=True)
+    
+    return kb.as_markup()
 
 
 
-async def payment_amount_kb(amount: int):
+async def payment_amount_kb(amount: int, price: int):
     kb = InlineKeyboardBuilder()
-    kb.button(text='Оплатить', callback_data=f'start_payment_{amount}')
+    kb.button(text=f'Оплатить {price} р.', callback_data=f'start_payment_{amount}_{price}')
     kb.adjust(1)
-    return kb.as_markup(resize_keyboard=True)
+    return kb.as_markup()
 
 
 
@@ -44,7 +45,7 @@ async def get_back_to_main_menu_kb():
     kb = InlineKeyboardBuilder()
     kb.button(text='Назад', callback_data='back_to_main_menu')
     kb.adjust(1)
-    return kb.as_markup(resize_keyboard=True)
+    return kb.as_markup()
 
 
 
