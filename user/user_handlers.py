@@ -248,8 +248,16 @@ async def pre_checkout_query(pre_checkout_query: PreCheckoutQuery, bot: Bot):
     
 @user_router.message(F.content_type == types.ContentType.SUCCESSFUL_PAYMENT)
 async def successful_payment(message: Message):
-    payload = json.loads(message.successful_payment.payload)
-    print(f"✅ Успешная оплата: {payload.get('price')}₽")
-    packages = payload.get('amount')
-    await increment_free_period(message.from_user.id, packages)
-    await message.answer(f"Спасибо за оплату! Вам начислено {packages} пакетов", reply_markup=await get_back_to_main_menu_kb())
+    # ✅ Распаковываем строку обратно в словарь
+    payload_data = json.loads(message.successful_payment.invoice_payload)
+    
+    amount = payload_data.get('amount')  # Кол-во пакетов
+    price = payload_data.get('price')    # Стоимость
+
+    print(f"✅ Успешная оплата: {price}₽ за {amount} пакетов")
+
+    await increment_free_period(message.from_user.id, amount)
+    await message.answer(
+        f"Спасибо за оплату! Вам начислено {amount} пакетов.",
+        reply_markup=await get_back_to_main_menu_kb()
+    )
