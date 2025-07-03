@@ -221,8 +221,9 @@ async def payment_amount(callback: CallbackQuery):
     
 @user_router.callback_query(F.data.startswith('start_payment_'))
 async def payment_amount_callback(callback: CallbackQuery, bot: Bot):
-    amount = int(callback.data.split('_')[-1])
-    price = int(callback.data.split('_')[-2])
+    amount = int(callback.data.split('_')[-2])
+    price = int(callback.data.split('_')[-1])
+    
     await bot.send_invoice(
         chat_id=callback.from_user.id,
         title='Покупка пакетов',
