@@ -62,7 +62,10 @@ async def start_command(message: Message, bot: Bot, state: FSMContext):
         time = datetime.now().strftime('%H:%M')
         date = datetime.now().strftime('%d.%m.%Y')
         date_time = f'{date} {time}'
-        name = new_user.name
+        try:
+            name = new_user.name
+        except:
+            return
         service = '-'
         operation = 'Новый пользователь'
         count = '-'
