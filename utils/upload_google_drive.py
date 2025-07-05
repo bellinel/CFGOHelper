@@ -1,93 +1,74 @@
-from google.oauth2 import service_account
-from googleapiclient.discovery import build
+import os
+import asyncio
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
+from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
-import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
-
-
-# Путь к ключу сервисного аккаунта
 SERVICE_ACCOUNT_FILE = 'utils/service_account.json'
 SCOPES = ['https://www.googleapis.com/auth/drive']
-
-# Авторизация
-credentials = service_account.Credentials.from_service_account_file(
-    SERVICE_ACCOUNT_FILE, scopes=SCOPES
-)
-drive_service = build('drive', 'v3', credentials=credentials)
+FOLDER_ID = '1NzdVZbyNfaMWwQzMCIbtsk7U88FqNYdo'
 
 
+# Асинхронная обёртка вокруг авторизации
+async def authenticate_async() -> Credentials:
+    return await asyncio.to_thread(authenticate_sync)
 
-# Права доступа — полный доступ к Google Диску
-SCOPES = ['https://www.googleapis.com/auth/drive']  # полный доступ к Google Drive
 
-
-def authenticate():
+def authenticate_sync():
     creds = None
-    # Файл с сохранёнными токенами пользователя
     if os.path.exists('token.json'):
         creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-    # Если токена нет или он просрочен — запуск OAuth flow
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES)
+            flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
             creds = flow.run_local_server(port=0)
-        # Сохраняем токен для будущих запусков
         with open('token.json', 'w') as token:
             token.write(creds.to_json())
     return creds
 
 
-
-def upload_file(file_path, upload_name=None):
-    file_ext = os.path.splitext(file_path)[1]  # Получаем расширение, например ".pdf"
+# Асинхронная функция загрузки файла
+async def upload_file_async(file_path: str, upload_name: str = None) -> str:
+    file_ext = os.path.splitext(file_path)[1]
     base_name = os.path.basename(file_path)
 
-    # Если имя для загрузки задано, проверяем наличие расширения
     if upload_name:
-        if not upload_name.endswith(file_ext):
-            file_name = upload_name + file_ext
-        else:
-            file_name = upload_name
+        file_name = upload_name + file_ext if not upload_name.endswith(file_ext) else upload_name
     else:
         file_name = base_name
 
-    folder_id = '1NzdVZbyNfaMWwQzMCIbtsk7U88FqNYdo'
+    creds = await authenticate_async()
 
-    creds = authenticate()
-    drive_service = build('drive', 'v3', credentials=creds)
+    drive_service = await asyncio.to_thread(build, 'drive', 'v3', credentials=creds)
 
     file_metadata = {
         'name': file_name,
-        'parents': [folder_id]
+        'parents': [FOLDER_ID]
     }
 
     media = MediaFileUpload(file_path, resumable=True)
-    uploaded_file = drive_service.files().create(
-        body=file_metadata,
-        media_body=media,
-        fields='id'
-    ).execute()
+
+    uploaded_file = await asyncio.to_thread(
+        drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute
+    )
 
     file_id = uploaded_file.get('id')
     print(f"✅ Файл загружен, ID: {file_id}")
 
-    drive_service.permissions().create(
-        fileId=file_id,
-        body={'type': 'anyone', 'role': 'reader'}
-    ).execute()
+    await asyncio.to_thread(
+        drive_service.permissions().create(
+            fileId=file_id,
+            body={'type': 'anyone', 'role': 'reader'}
+        ).execute
+    )
 
     file_link = f"https://drive.google.com/file/d/{file_id}/view?usp=sharing"
     print(f"🔗 Ссылка на файл: {file_link}")
     return file_link
-
-
-

@@ -46,8 +46,8 @@ async def yandex_gpt_async(resume, vacancy):
         auth=API_KEY,
     )
     result = (
-        sdk.models.completions("yandexgpt").configure(temperature=0.5).run(messages, timeout=180)
-    )
+        sdk.models.completions("yandexgpt").configure(temperature=0.5).run_deferred(messages, timeout=180)
+    ).wait()
     text = result.alternatives[0].text
     return text
 
@@ -140,11 +140,20 @@ async def yandex_gpt_save_vacancy(resume, vacancy):
             auth=API_KEY,
         )
     result = (
-        sdk.models.completions("yandexgpt").configure(temperature=0.5).run(messages, timeout=180)
-    )
+        sdk.models.completions("yandexgpt").configure(temperature=0.5).run_deferred(messages, timeout=180)
+    ).wait()
+
     text = extract_json_from_text(result.alternatives[0].text)
     text = json.loads(text)
     return text
+
+
+
+
+
+
+
+
 
 
 

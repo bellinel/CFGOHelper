@@ -22,7 +22,8 @@ ADMIN_ID = [int(id) for id in ADMIN_ID]
 
 
 @admin_router.callback_query(F.data == 'manage_admins')
-async def manage_access(callback: CallbackQuery):
+async def manage_access(callback: CallbackQuery, state: FSMContext):
+    await state.clear()
     await callback.message.edit_text('Управление админами', reply_markup=await get_manage_admins_kb())
 
 @admin_router.callback_query(F.data == 'add_admin')
@@ -67,7 +68,8 @@ async def delete_admin(callback: CallbackQuery):
 
 
 @admin_router.callback_query(F.data == 'manage_vip_users')
-async def manage_vip_users(callback: CallbackQuery):
+async def manage_vip_users(callback: CallbackQuery, state: FSMContext):
+    await state.clear()
     await callback.message.edit_text('Управление VIP пользователями', reply_markup=await get_manage_vip_users_kb())
 
 

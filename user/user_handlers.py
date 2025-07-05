@@ -12,8 +12,8 @@ from user.user_kb import get_start_kb, get_payment_kb, payment_amount_kb, get_ba
 from user.text_message import TextMessage
 from user.states import UserStates
 from datetime import datetime
-from utils.upload_google_drive import upload_file
-from utils.google_upload import upload_dict_to_sheet, get_last_row_number
+from utils.upload_google_drive import upload_file_async
+from utils.google_upload import upload_dict_to_sheet, get_last_row_number, append_row_to_billing_sheet
 from admin.admin_kb import get_admin_kb, get_super_admin_kb
 from dotenv import load_dotenv
 import json
@@ -22,10 +22,12 @@ load_dotenv()
 user_router = Router()
 CHANNEL_ID = os.getenv('CHANNEL_ID')
 PROVIDER_TOKEN = os.getenv('PROVIDER_TOKEN')
-print(PROVIDER_TOKEN)
+
 
 ADMIN_ID = os.getenv('ADMIN_ID').split(',')
 ADMIN_ID = [int(id) for id in ADMIN_ID]
+
+BILLING_ID = os.getenv('BILLING_ID')
 
 
 
@@ -54,8 +56,27 @@ async def start_command(message: Message, bot: Bot, state: FSMContext):
             name = f'@{message.from_user.username}'
         else:
             name = message.from_user.first_name
-        await create_user(message.from_user.id, name)
-        
+
+        await message.answer('Пожалуйста подождите, мы создаем ваш аккаунт')
+        new_user = await create_user(message.from_user.id, name)
+        time = datetime.now().strftime('%H:%M')
+        date = datetime.now().strftime('%d.%m.%Y')
+        date_time = f'{date} {time}'
+        name = new_user.name
+        service = '-'
+        operation = 'Новый пользователь'
+        count = '-'
+        balance = new_user.free_period
+        last_number = await get_last_row_number(BILLING_ID)
+        data_for_billing_sheet = {
+            '№': last_number+1,
+            'Дата и время': date_time,
+            'Имя пользователя': name,
+            'Услуга': service,
+            'Операция': operation,
+            'Количество': count,
+            'Баланс': balance}
+        await append_row_to_billing_sheet(BILLING_ID, 'Лист1', data_for_billing_sheet)
     
     if message.from_user.id in ADMIN_ID:
         await message.answer(TextMessage.START_MESSAGE, reply_markup=await get_super_admin_kb())
@@ -127,7 +148,7 @@ async def scan_resume_second(message: Message, state: FSMContext):
     data_for_google_table = await yandex_gpt_save_vacancy(resume, vacancy)
     data_for_google_table = remove_square_brackets(data_for_google_table)
     name_candidate = data_for_google_table.get('ФИО')
-    last_number = get_last_row_number()
+    last_number = await get_last_row_number(BILLING_ID)
     
     date = datetime.now().strftime('%d.%m.%Y')
     file_path_gpt, name_file_gpt = save_gpt_response(name_candidate, gpt_response, date, last_number)
@@ -150,11 +171,11 @@ async def scan_resume_second(message: Message, state: FSMContext):
         file_path = None
         
     if file_path:
-        file_link = upload_file(file_path, f'{name_file_gpt}_CV')
+        file_link = await upload_file_async(file_path, f'{name_file_gpt}_CV')
         
         delete_local_file(file_path)
     if file_path_gpt:
-        file_link_gpt = upload_file(file_path_gpt, f'{name_file_gpt}_Скрининг')
+        file_link_gpt = await upload_file_async(file_path_gpt, f'{name_file_gpt}_Скрининг')
         delete_local_file(file_path_gpt)
         
     
@@ -178,8 +199,17 @@ async def scan_resume_second(message: Message, state: FSMContext):
         data_for_google_table['Пользователь'] = tg_user
         data_for_google_table['Дата создания'] = date
         
-    upload_dict_to_sheet(data_for_google_table ,last_number)
-    
+    await upload_dict_to_sheet(data_for_google_table ,last_number)
+    date_time = datetime.now().strftime('%d.%m.%Y %H:%M')
+    data_for_billing_sheet = {
+        '№': last_number+1,
+        'Дата и время': date_time,
+        'Имя пользователя': user.name,
+        'Услуга': 'Скрининг',
+        'Операция': 'Списание',
+        'Количество': 1,
+        'Баланс': user.free_period}
+    await append_row_to_billing_sheet(BILLING_ID, 'Лист1', data_for_billing_sheet)
     
     
     await state.clear()
@@ -197,7 +227,8 @@ async def back_to_main_menu(callback: CallbackQuery):
 
 
 @user_router.callback_query(F.data == 'payment')
-async def payment_menu(callback: CallbackQuery):
+async def payment_menu(callback: CallbackQuery, state: FSMContext):
+    await state.clear()
     await callback.message.edit_text(TextMessage.PAYMENT_MESSAGE, reply_markup=await get_payment_kb())
 
 
@@ -223,21 +254,43 @@ async def payment_amount(callback: CallbackQuery):
 async def payment_amount_callback(callback: CallbackQuery, bot: Bot):
     amount = int(callback.data.split('_')[-2])
     price = int(callback.data.split('_')[-1])
-    
+    print(f"{price:.2f}")
+    await callback.message.delete()
     await bot.send_invoice(
         chat_id=callback.from_user.id,
         title='Покупка пакетов',
+        need_email=True,
+        send_email_to_provider=True,
         description=f'Покупка {amount} пакетов',
         payload=json.dumps({'amount': amount, 'price': price}),
         provider_token=PROVIDER_TOKEN,
+        
         currency='RUB',
         prices=[
             LabeledPrice(
                 label=f'{amount} пакетов',
                 amount=price * 100
             )
-        ]
-    )
+        ],
+        is_flexible=False,
+        provider_data=json.dumps({
+  "receipt": {
+    "items": [
+      {
+        "description": "Покупка пакетов",
+        "quantity": 1,
+        "amount": {
+          "value": f"{price:.2f}",
+          "currency": "RUB"
+        },
+        "vat_code": 1,
+        "payment_mode": "full_payment",
+        "payment_subject": "service"
+      }
+    ]
+  }
+}))
+
     await callback.answer()
     
     
@@ -247,17 +300,30 @@ async def pre_checkout_query(pre_checkout_query: PreCheckoutQuery, bot: Bot):
     
     
 @user_router.message(F.content_type == types.ContentType.SUCCESSFUL_PAYMENT)
-async def successful_payment(message: Message):
+async def successful_payment(message: Message, bot: Bot):
     # ✅ Распаковываем строку обратно в словарь
+    
     payload_data = json.loads(message.successful_payment.invoice_payload)
     
     amount = payload_data.get('amount')  # Кол-во пакетов
     price = payload_data.get('price')    # Стоимость
-
+    
     print(f"✅ Успешная оплата: {price}₽ за {amount} пакетов")
 
     await increment_free_period(message.from_user.id, amount)
     await message.answer(
-        f"Спасибо за оплату! Вам начислено {amount} пакетов.",
+        f"Спасибо за оплату! Вам начислено {amount} скринингов.",
         reply_markup=await get_back_to_main_menu_kb()
     )
+    user = await get_user(message.from_user.id)
+    last_number = await get_last_row_number(BILLING_ID)
+    date_time = datetime.now().strftime('%d.%m.%Y %H:%M')
+    data_for_billing_sheet = {
+        '№': last_number+1,
+        'Дата и время': date_time,
+        'Имя пользователя': user.name,
+        'Услуга': 'Скрининг',
+        'Операция': 'Пополнение',
+        'Количество': amount,
+        'Баланс': user.free_period}
+    await append_row_to_billing_sheet(BILLING_ID, 'Лист1', data_for_billing_sheet)

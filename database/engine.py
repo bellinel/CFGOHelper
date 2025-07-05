@@ -1,5 +1,6 @@
 
 import logging
+import os
 from sqlalchemy import Column, Integer, String, Boolean
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -7,7 +8,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.ext.asyncio import create_async_engine
 
-Base = declarative_base()
+Base = declarative_base()   
 
 class Database:
     """
@@ -27,10 +28,10 @@ class Database:
             db_name (str, optional): Имя файла базы данных. По умолчанию "bot.db".
         """
         # Создаем URL подключения для асинхронного SQLite
-        self.db_url = f"sqlite+aiosqlite:///{db_name}"
+        self.db_url =f"postgresql+asyncpg://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
         # Создаем асинхронный движок
         self.engine = create_async_engine(self.db_url, echo=False)
-        # Создаем фабрику сессий
+        # Создаем фабрику сессий    
         self.session_factory = sessionmaker(
             bind=self.engine,
             class_=AsyncSession,
