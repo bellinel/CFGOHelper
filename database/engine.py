@@ -1,7 +1,7 @@
 
 import logging
 import os
-from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy import Column, Integer, String, Boolean, BigInteger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from sqlalchemy.orm import sessionmaker
@@ -62,7 +62,7 @@ class Users(Base):
     __tablename__ = "messages"
 
     id = Column(Integer, primary_key=True)
-    tg_id = Column(Integer, nullable=False, unique=True)
+    tg_id = Column(BigInteger, nullable=False, unique=True)
     name = Column(String, nullable=False)
     balance = Column(Integer, nullable=False)
     free_period = Column(Integer, nullable=False, default=3)
