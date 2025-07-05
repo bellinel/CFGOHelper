@@ -89,7 +89,6 @@ async def start_command(message: Message, bot: Bot, state: FSMContext):
     await message.answer(TextMessage.START_MESSAGE, reply_markup=await get_start_kb())
 
 
-
 @user_router.callback_query(F.data == 'scan_resume')
 async def scan_resume(callback: CallbackQuery, state: FSMContext):
     free_period = await get_free_period(callback.from_user.id)

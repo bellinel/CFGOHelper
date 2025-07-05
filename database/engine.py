@@ -59,7 +59,7 @@ class Database:
 
 
 class Users(Base):
-    __tablename__ = "messages"
+    __tablename__ = "users"
 
     id = Column(Integer, primary_key=True)
     tg_id = Column(String, nullable=False, unique=True)
