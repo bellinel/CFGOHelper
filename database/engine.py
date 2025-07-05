@@ -31,7 +31,7 @@ class Database:
         self.db_url =f"postgresql+asyncpg://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
         # Создаем асинхронный движок
         self.engine = create_async_engine(self.db_url, echo=False)
-        # Создаем фабрику сессий    
+        # Создаем фабрику сессий
         self.session_factory = sessionmaker(
             bind=self.engine,
             class_=AsyncSession,
@@ -59,10 +59,10 @@ class Database:
 
 
 class Users(Base):
-    __tablename__ = "users"
+    __tablename__ = "messages"
 
     id = Column(Integer, primary_key=True)
-    tg_id = Column(String, nullable=False, unique=True)
+    tg_id = Column(Integer, nullable=False, unique=True)
     name = Column(String, nullable=False)
     balance = Column(Integer, nullable=False)
     free_period = Column(Integer, nullable=False, default=3)
