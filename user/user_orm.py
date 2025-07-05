@@ -8,7 +8,6 @@ async def create_user(tg_id: int, name: str):
         async with db.session_factory() as session:
             user = Users(tg_id=tg_id, name=name, balance=0, free_period=3)
             session.add(user)
-            print(f'В функции create_user:')
             await session.commit()
             return user
     except Exception as e:
@@ -23,7 +22,6 @@ async def get_user(tg_id: int):
     try:
         async with db.session_factory() as session:
             user = await session.execute(select(Users).where(Users.tg_id == tg_id))
-            print(f'В функции get_user:')
             return user.scalar_one_or_none()
     except Exception as e:
         print('Ошибка в функции get_user:', e)

@@ -36,12 +36,12 @@ async def set_admin(callback: CallbackQuery, state: FSMContext):
 @admin_router.message(AdminStates.set_admin)
 async def set_admin_id(message: Message, state: FSMContext):
     user_id = message.text
-    user = await get_user(user_id)
+    user = await get_user(int(user_id))
     if user is None:
         await message.answer('Пользователь не зарегистрирован в боте')
         return
     await message.answer(f'Пользователь {user.name} - {user.tg_id}\nтеперь администратор')
-    await set_admin_status(user_id, True)
+    await set_admin_status(int(user_id), True)
     await state.clear()
 
 
@@ -60,7 +60,7 @@ async def get_admins(callback: CallbackQuery):
 @admin_router.callback_query(F.data.startswith('delete_admin_'))
 async def delete_admin(callback: CallbackQuery):
     tg_id = callback.data.split('_')[-1]
-    await delete_admin_orm(tg_id)
+    await delete_admin_orm(int(tg_id))
     await callback.message.edit_text(f'Администратор {tg_id} удален')
     await asyncio.sleep(1)
     await callback.message.delete()
@@ -88,7 +88,7 @@ async def get_vips(callback: CallbackQuery):
 @admin_router.callback_query(F.data.startswith('delete_vip_'))
 async def delete_vip(callback: CallbackQuery):
     tg_id = callback.data.split('_')[-1]
-    await delete_vip_orm(tg_id)
+    await delete_vip_orm(int(tg_id))
     await callback.message.edit_text(f'VIP пользователь {tg_id} убран')
     await asyncio.sleep(1)
     await callback.message.delete()
@@ -103,7 +103,7 @@ async def add_vip(callback: CallbackQuery, state: FSMContext):
 @admin_router.message(AdminStates.set_vip)
 async def set_vip_id(message: Message, state: FSMContext):
     user_id = message.text
-    user = await get_user(user_id)
+    user = await get_user(int(user_id))
     if user is None:
         await message.answer('Пользователь не зарегистрирован в боте')
         return
@@ -111,6 +111,6 @@ async def set_vip_id(message: Message, state: FSMContext):
         await message.answer('Пользователь уже VIP')
         return
     await message.answer(f'Пользователь {user.name} - {user.tg_id}\nтеперь VIP')
-    await set_vip_status(user_id, True)
+    await set_vip_status(int(user_id), True)
     await state.clear()
 

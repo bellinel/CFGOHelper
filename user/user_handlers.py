@@ -50,7 +50,7 @@ async def start_command(message: Message, bot: Bot, state: FSMContext):
         await message.answer(TextMessage.CHANNEL_MESSAGE)
         return
     
-    user = await get_user(message.from_user.id)
+    user = await get_user(int(message.from_user.id))
     if user is None:
         if message.from_user.username:
             name = f'@{message.from_user.username}'
@@ -58,7 +58,7 @@ async def start_command(message: Message, bot: Bot, state: FSMContext):
             name = message.from_user.first_name
 
         await message.answer('Пожалуйста подождите, мы создаем ваш аккаунт')
-        new_user = await create_user(message.from_user.id, name)
+        new_user = await create_user(int(message.from_user.id), name)
         time = datetime.now().strftime('%H:%M')
         date = datetime.now().strftime('%d.%m.%Y')
         date_time = f'{date} {time}'
@@ -94,8 +94,8 @@ async def start_command(message: Message, bot: Bot, state: FSMContext):
 
 @user_router.callback_query(F.data == 'scan_resume')
 async def scan_resume(callback: CallbackQuery, state: FSMContext):
-    free_period = await get_free_period(callback.from_user.id)
-    user = await get_user(callback.from_user.id)
+    free_period = await get_free_period(int(callback.from_user.id))
+    user = await get_user(int(callback.from_user.id))
     if user and not user.is_admin and not user.is_vip and callback.from_user.id not in ADMIN_ID:
         if free_period == 0:
             
@@ -143,9 +143,9 @@ async def scan_resume_second(message: Message, state: FSMContext):
     url = data.get('url')
     gpt_response = await yandex_gpt_async(resume, vacancy)
     await message.answer(markdown_bold_to_html(gpt_response), parse_mode='HTML')
-    user = await get_user(message.from_user.id)
+    user = await get_user(int(message.from_user.id))
     if user and not user.is_admin and not user.is_vip and message.from_user.id not in ADMIN_ID:
-        await decrement_free_period(message.from_user.id)
+        await decrement_free_period(int(message.from_user.id))
         
     data_for_google_table = await yandex_gpt_save_vacancy(resume, vacancy)
     data_for_google_table = remove_square_brackets(data_for_google_table)
@@ -312,7 +312,7 @@ async def successful_payment(message: Message, bot: Bot):
     
     print(f"✅ Успешная оплата: {price}₽ за {amount} пакетов")
 
-    await increment_free_period(message.from_user.id, amount)
+    await increment_free_period(int(message.from_user.id), amount)
     await message.answer(
         f"Спасибо за оплату! Вам начислено {amount} скринингов.",
         reply_markup=await get_back_to_main_menu_kb()
