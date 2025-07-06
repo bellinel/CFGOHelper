@@ -100,7 +100,7 @@ async def scan_resume(callback: CallbackQuery, state: FSMContext):
         if free_period == 0:
             
             await callback.answer('У вас закончились бесплатные попытки, вам необходимо купить новый пакет Скрининга', show_alert=True)
-            await payment_menu(callback)
+            await payment_menu(callback, state)
             return
     
     
