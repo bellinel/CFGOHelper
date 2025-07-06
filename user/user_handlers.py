@@ -210,7 +210,7 @@ async def scan_resume_second(message: Message, state: FSMContext):
         'Услуга': 'Скрининг',
         'Операция': 'Списание',
         'Количество': 1,
-        'Баланс': user.free_period}
+        'Баланс': user.free_period-1}
     await append_row_to_billing_sheet(BILLING_ID, 'Лист1', data_for_billing_sheet)
     
     
