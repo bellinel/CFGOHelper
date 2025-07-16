@@ -36,7 +36,7 @@ BILLING_ID = os.getenv('BILLING_ID')
 async def start_command(message: Message, state: FSMContext):
 
     await state.clear()
-    await message.answer(TextMessage.ON_START_MESSAGE, reply_markup= await get_sub_kb())
+    await message.answer(TextMessage.START_MESSAGE, reply_markup= await get_sub_kb())
 
 
 @user_router.callback_query(F.data == 'start_for_sub')
@@ -79,7 +79,7 @@ async def sub(callback: CallbackQuery, bot : Bot):
                 'Количество': count,
                 'Баланс': balance}
             await append_row_to_billing_sheet(BILLING_ID, 'Лист1', data_for_billing_sheet)
-            
+
     await callback.message.delete()
     await callback.message.answer(TextMessage.START_MESSAGE, reply_markup=await get_start_kb())
     
