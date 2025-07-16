@@ -8,7 +8,7 @@ import os
 from user.user_orm import get_user, create_user, get_free_period, decrement_free_period, increment_free_period
 from user.utils import handle_document, markdown_bold_to_html, remove_square_brackets, save_gpt_response, delete_local_file, send_analize_hh_text
 from utils.get_yandex_gpt import yandex_gpt_async, yandex_gpt_save_vacancy
-from user.user_kb import get_start_kb, get_payment_kb, payment_amount_kb, get_back_to_main_menu_kb
+from user.user_kb import get_start_kb, get_payment_kb, payment_amount_kb, get_back_to_main_menu_kb, get_sub_kb
 from user.text_message import TextMessage
 from user.states import UserStates
 from datetime import datetime
@@ -36,61 +36,81 @@ BILLING_ID = os.getenv('BILLING_ID')
 async def start_command(message: Message, state: FSMContext):
 
     await state.clear()
-    await message.answer(TextMessage.ON_START_MESSAGE)
+    await message.answer(TextMessage.ON_START_MESSAGE, reply_markup= await get_sub_kb())
 
+
+@user_router.callback_query(F.data == 'start_for_sub')
+async def sub(callback: CallbackQuery, bot : Bot):
+    member = await bot.get_chat_member(chat_id=CHANNEL_ID, user_id=callback.from_user.id)
+    
+    if member.status not in ["member", "administrator", "creator"]:
+        await callback.message.delete()
+        await callback.message.answer(TextMessage.CHANNEL_MESSAGE, reply_markup=await get_sub_kb())
+        return
+    
+    user = await get_user(int(callback.from_user.id))
+    if user is None:
+            if callback.from_user.username:
+                name = f'@{callback.from_user.username}'
+                print(name)
+            else:
+                name = callback.first_name
+
+            await callback.message.answer('Пожалуйста подождите, мы создаем ваш аккаунт')
+            new_user = await create_user(int(callback.from_user.id), name)
+            time = datetime.now().strftime('%H:%M')
+            date = datetime.now().strftime('%d.%m.%Y')
+            date_time = f'{date} {time}'
+            try:
+                name = new_user.name
+            except:
+                return
+            service = '-'
+            operation = 'Новый пользователь'
+            count = '-'
+            balance = new_user.free_period
+            last_number = await get_last_row_number(BILLING_ID)
+            data_for_billing_sheet = {
+                '№': last_number+1,
+                'Дата и время': date_time,
+                'Имя пользователя': name,
+                'Услуга': service,
+                'Операция': operation,
+                'Количество': count,
+                'Баланс': balance}
+            await append_row_to_billing_sheet(BILLING_ID, 'Лист1', data_for_billing_sheet)
+
+    await callback.message.answer(TextMessage.START_MESSAGE, reply_markup=await get_start_kb())
+    
+        
 
 
 @user_router.message(Command('main_menu'))
 async def start_command(message: Message, bot: Bot, state: FSMContext):
     await state.clear()
-
-
-    member = await bot.get_chat_member(chat_id=CHANNEL_ID, user_id=message.from_user.id)
-    if member.status not in ["member", "administrator", "creator"]:
-        await message.answer(TextMessage.CHANNEL_MESSAGE)
-        return
     
     user = await get_user(int(message.from_user.id))
-    if user is None:
-        if message.from_user.username:
-            name = f'@{message.from_user.username}'
-        else:
-            name = message.from_user.first_name
+    if user:
 
-        await message.answer('Пожалуйста подождите, мы создаем ваш аккаунт')
-        new_user = await create_user(int(message.from_user.id), name)
-        time = datetime.now().strftime('%H:%M')
-        date = datetime.now().strftime('%d.%m.%Y')
-        date_time = f'{date} {time}'
-        try:
-            name = new_user.name
-        except:
+        member = await bot.get_chat_member(chat_id=CHANNEL_ID, user_id=message.from_user.id)
+        if member.status not in ["member", "administrator", "creator"]:
+            await message.answer(TextMessage.CHANNEL_MESSAGE)
             return
-        service = '-'
-        operation = 'Новый пользователь'
-        count = '-'
-        balance = new_user.free_period
-        last_number = await get_last_row_number(BILLING_ID)
-        data_for_billing_sheet = {
-            '№': last_number+1,
-            'Дата и время': date_time,
-            'Имя пользователя': name,
-            'Услуга': service,
-            'Операция': operation,
-            'Количество': count,
-            'Баланс': balance}
-        await append_row_to_billing_sheet(BILLING_ID, 'Лист1', data_for_billing_sheet)
     
-    if message.from_user.id in ADMIN_ID:
-        await message.answer(TextMessage.START_MESSAGE, reply_markup=await get_super_admin_kb())
+    
+        
+        if message.from_user.id in ADMIN_ID:
+            await message.answer(TextMessage.START_MESSAGE, reply_markup=await get_super_admin_kb())
+            return
+        
+        if user and user.is_admin:
+            await message.answer(TextMessage.START_MESSAGE, reply_markup=await get_admin_kb())
+            return
+        
+        await message.answer(TextMessage.START_MESSAGE, reply_markup=await get_start_kb())
+    if not user:
+        await message.answer('Пройдите регистрацию через команду /start')
         return
-    
-    if user and user.is_admin:
-        await message.answer(TextMessage.START_MESSAGE, reply_markup=await get_admin_kb())
-        return
-    
-    await message.answer(TextMessage.START_MESSAGE, reply_markup=await get_start_kb())
-
 
 @user_router.callback_query(F.data == 'scan_resume')
 async def scan_resume(callback: CallbackQuery, state: FSMContext):

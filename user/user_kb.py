@@ -47,5 +47,8 @@ async def get_back_to_main_menu_kb():
     kb.adjust(1)
     return kb.as_markup()
 
-
-
+async def get_sub_kb():
+    kb = InlineKeyboardBuilder()
+    kb.button(text='Начать', callback_data='start_for_sub')
+    kb.adjust(1)
+    return kb.as_markup()
