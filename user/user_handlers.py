@@ -36,7 +36,7 @@ BILLING_ID = os.getenv('BILLING_ID')
 async def start_command(message: Message, state: FSMContext):
 
     await state.clear()
-    await message.answer(TextMessage.START_MESSAGE, reply_markup= await get_sub_kb())
+    await message.answer(TextMessage.FIRST_START_MESSAGE, reply_markup= await get_sub_kb())
 
 
 @user_router.callback_query(F.data == 'start_for_sub')
