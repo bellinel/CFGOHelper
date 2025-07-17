@@ -1,22 +1,23 @@
-
 import asyncio
 from aiogram import Router, F, Bot, types
-from aiogram.types import Message, CallbackQuery, LabeledPrice, PreCheckoutQuery, ReplyKeyboardRemove 
+from aiogram.types import Message, CallbackQuery, LabeledPrice, PreCheckoutQuery
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 import os
 from user.user_orm import get_user, create_user, get_free_period, decrement_free_period, increment_free_period
 from user.utils import handle_document, markdown_bold_to_html, remove_square_brackets, save_gpt_response, delete_local_file, send_analize_hh_text
 from utils.get_yandex_gpt import yandex_gpt_async, yandex_gpt_save_vacancy
-from user.user_kb import get_start_kb, get_payment_kb, payment_amount_kb, get_back_to_main_menu_kb, get_sub_kb
+from user.user_kb import get_start_kb, get_payment_kb, payment_amount_kb, get_back_to_main_menu_kb, get_sub_kb, scan_end, scan_menu_kb, get_back_to_prev_state_kb , get_back_to_scan_menu_kb
 from user.text_message import TextMessage
 from user.states import UserStates
 from datetime import datetime
 from utils.upload_google_drive import upload_file_async
 from utils.google_upload import upload_dict_to_sheet, get_last_row_number, append_row_to_billing_sheet
-from admin.admin_kb import get_admin_kb, get_super_admin_kb
+from admin.admin_kb import get_admin_kb
 from dotenv import load_dotenv
 import json
+from aiogram.enums import ChatAction
+
 load_dotenv()
 
 user_router = Router()
@@ -128,7 +129,7 @@ async def start_command(message: Message, bot: Bot, state: FSMContext):
         return
 
 
-@user_router.callback_query(F.data == 'scan_resume')
+@user_router.callback_query(F.data.in_(['start_scan', 'scan_again']))
 async def scan_resume(callback: CallbackQuery, state: FSMContext):
     free_period = await get_free_period(int(callback.from_user.id))
     user = await get_user(int(callback.from_user.id))
@@ -139,8 +140,11 @@ async def scan_resume(callback: CallbackQuery, state: FSMContext):
             await payment_menu(callback, state)
             return
     
-    
-    await callback.message.edit_text(TextMessage.SCAN_RESUME_FIRST_MESSAGE, reply_markup=await get_back_to_main_menu_kb())
+    if callback.data == 'start_scan':
+        await callback.message.answer(TextMessage.SCAN_RESUME_FIRST_MESSAGE, reply_markup=await get_back_to_scan_menu_kb())
+    else:
+        await callback.message.edit_text(TextMessage.SCAN_RESUME_FIRST_MESSAGE, reply_markup=await get_back_to_scan_menu_kb())
+
     await state.set_state(UserStates.scan_resume_first)
 
 @user_router.message(UserStates.scan_resume_first)
@@ -152,10 +156,11 @@ async def scan_resume_first(message: Message, state: FSMContext, bot: Bot):
     else:
         await state.update_data(resume=message.text)
     await message.answer(TextMessage.SCAN_RESUME_SECOND_MESSAGE)
+    
     await state.set_state(UserStates.scan_resume_second)
 
 @user_router.message(UserStates.scan_resume_second)
-async def scan_resume_second(message: Message, state: FSMContext):
+async def scan_resume_second(message: Message, state: FSMContext, bot : Bot):
     if message.text.startswith('https://hh.ru/vacancy/'):
         url = message.text
         
@@ -172,13 +177,14 @@ async def scan_resume_second(message: Message, state: FSMContext):
         
         await state.update_data(vacancy=message.text, url = None)
     await message.answer(TextMessage.SCAN_RESUME_THIRD_MESSAGE)
-
+    
     data = await state.get_data()
     resume = data.get('resume') 
     vacancy = data.get('vacancy')
     url = data.get('url')
     gpt_response = await yandex_gpt_async(resume, vacancy)
-    await message.answer(markdown_bold_to_html(gpt_response), parse_mode='HTML')
+
+    
     user = await get_user(int(message.from_user.id))
     if user and not user.is_admin and not user.is_vip and message.from_user.id not in ADMIN_ID:
         await decrement_free_period(int(message.from_user.id))
@@ -248,7 +254,10 @@ async def scan_resume_second(message: Message, state: FSMContext):
         'Количество': 1,
         'Баланс': user.free_period-1}
     await append_row_to_billing_sheet(BILLING_ID, 'Лист1', data_for_billing_sheet)
-    
+    await bot.send_chat_action(chat_id=message.chat.id, action=ChatAction.TYPING)
+    await asyncio.sleep(2)
+    await message.answer(markdown_bold_to_html(gpt_response), parse_mode='HTML')
+    await message.answer('Попробовать еще раз:', reply_markup= await scan_end())
     
     await state.clear()
     
@@ -365,3 +374,16 @@ async def successful_payment(message: Message, bot: Bot):
         'Количество': amount,
         'Баланс': user.free_period}
     await append_row_to_billing_sheet(BILLING_ID, 'Лист1', data_for_billing_sheet)
+
+
+
+
+@user_router.callback_query(F.data == 'scan_resume_menu')
+async def scan_menu(callback : CallbackQuery):
+    await callback.message.edit_text(TextMessage.SCAN_RESUME_MENU, reply_markup= await scan_menu_kb())
+
+
+@user_router.callback_query(F.data == 'back_to_scan_menu')
+async def back_to_scan_menu(callback : CallbackQuery, state : FSMContext):
+    await state.clear()
+    await scan_menu(callback)

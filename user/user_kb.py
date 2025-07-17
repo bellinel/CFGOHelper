@@ -10,7 +10,7 @@ async def get_start_kb():
     Разместить вакансию - каллбэк post_vacancy
     '''
     kb = InlineKeyboardBuilder()
-    kb.button(text='Сканировать резюме', callback_data='scan_resume')
+    kb.button(text='Сканировать резюме', callback_data='scan_resume_menu')
     kb.button(text='Оплата услуг', callback_data='payment')
     
     # kb.button(text='Прислать резюме', callback_data='send_resume')
@@ -51,5 +51,36 @@ async def get_back_to_main_menu_kb():
 async def get_sub_kb():
     kb = InlineKeyboardBuilder()
     kb.button(text='Начать', callback_data='start_for_sub')
+    kb.adjust(1)
+    return kb.as_markup()
+
+
+async def scan_menu_kb():
+    kb = InlineKeyboardBuilder()
+    kb.button(text='Начать', callback_data='start_scan')
+    kb.button(text='Назад', callback_data='back_to_main_menu')
+    kb.adjust(1)
+    return kb.as_markup()
+
+
+async def scan_end():
+    kb = InlineKeyboardBuilder()
+    kb.button(text='Сканировать еще', callback_data='scan_again')
+    kb.button(text='Назад в меню', callback_data='back_to_main_menu')
+    kb.adjust()
+    return kb.as_markup()
+
+
+
+async def get_back_to_prev_state_kb():
+    kb = InlineKeyboardBuilder()
+    kb.button(text='Назад', callback_data='back_to_prev_state')
+    kb.adjust(1)
+    return kb.as_markup()
+
+
+async def get_back_to_scan_menu_kb():
+    kb = InlineKeyboardBuilder()
+    kb.button(text='Назад', callback_data='back_to_scan_menu')
     kb.adjust(1)
     return kb.as_markup()

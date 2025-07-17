@@ -1,4 +1,4 @@
-from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 
 async def delete_admin_kb(tg_id: int):
@@ -8,7 +8,7 @@ async def delete_admin_kb(tg_id: int):
 
 async def get_admin_kb():
     kb = InlineKeyboardBuilder()
-    kb.button(text='Сканировать резюме', callback_data='scan_resume')
+    kb.button(text='Сканировать резюме', callback_data='scan_resume_menu')
     kb.button(text='Оплата услуг', callback_data='payment')
     kb.button(text='Админ панель', callback_data='admin_panel')
     kb.adjust(1)
