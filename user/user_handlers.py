@@ -1,7 +1,8 @@
 
 
+import asyncio
 from aiogram import Router, F, Bot, types
-from aiogram.types import Message, CallbackQuery, LabeledPrice, PreCheckoutQuery
+from aiogram.types import Message, CallbackQuery, LabeledPrice, PreCheckoutQuery , ReplyKeyboardRemove
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 import os
@@ -14,7 +15,7 @@ from user.states import UserStates
 from datetime import datetime
 from utils.upload_google_drive import upload_file_async
 from utils.google_upload import upload_dict_to_sheet, get_last_row_number, append_row_to_billing_sheet
-from admin.admin_kb import get_admin_kb, get_super_admin_kb
+from admin.admin_kb import get_admin_kb, get_super_admin_kb, get_tovmas_kb
 from dotenv import load_dotenv
 import json
 load_dotenv()
@@ -54,7 +55,7 @@ async def sub(callback: CallbackQuery, bot : Bot):
                 name = f'@{callback.from_user.username}'
                 print(name)
             else:
-                name = callback.first_name
+                name = callback.from_user.first_name
 
             await callback.message.answer('Пожалуйста подождите, мы создаем ваш аккаунт')
             new_user = await create_user(int(callback.from_user.id), name)
@@ -101,7 +102,10 @@ async def start_command(message: Message, bot: Bot, state: FSMContext):
     
         
         if message.from_user.id in ADMIN_ID:
-            await message.answer(TextMessage.START_MESSAGE, reply_markup=await get_super_admin_kb())
+            a = await message.answer('.', reply_markup= await get_tovmas_kb())
+            await message.answer(TextMessage.START_MESSAGE, reply_markup=await get_start_kb())
+            await asyncio.sleep(0,5)
+            # await a.delete()
             return
         
         if user and user.is_admin:
@@ -113,6 +117,16 @@ async def start_command(message: Message, bot: Bot, state: FSMContext):
         await message.answer('Пройдите регистрацию через команду /start')
         return
 
+@user_router.message(F.text == 'Админ панель')
+async def tovmas_kb(message : Message):
+    if message.from_user.id not in ADMIN_ID:
+        return
+    
+    # await message.answer('a', reply_markup= ReplyKeyboardRemove())
+    # await message.delete()
+    await message.answer('Админ панель', reply_markup= await get_super_admin_kb())
+
+
 @user_router.callback_query(F.data == 'scan_resume')
 async def scan_resume(callback: CallbackQuery, state: FSMContext):
     free_period = await get_free_period(int(callback.from_user.id))
@@ -120,7 +134,7 @@ async def scan_resume(callback: CallbackQuery, state: FSMContext):
     if user and not user.is_admin and not user.is_vip and callback.from_user.id not in ADMIN_ID:
         if free_period == 0:
             
-            await callback.answer('У вас закончились бесплатные попытки, вам необходимо купить новый пакет Скрининга', show_alert=True)
+            await callback.answer('У вас закончились бесплатные попытки, вам необходимо купить новый па кет Скрининга', show_alert=True)
             await payment_menu(callback, state)
             return
     
