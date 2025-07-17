@@ -129,7 +129,7 @@ async def start_command(message: Message, bot: Bot, state: FSMContext):
         return
 
 
-@user_router.callback_query(F.data.in_(['start_scan', 'scan_again']))
+@user_router.callback_query(F.data == 'start_scan')
 async def scan_resume(callback: CallbackQuery, state: FSMContext):
     free_period = await get_free_period(int(callback.from_user.id))
     user = await get_user(int(callback.from_user.id))
@@ -377,13 +377,8 @@ async def successful_payment(message: Message, bot: Bot):
 
 
 
-
-@user_router.callback_query(F.data == 'scan_resume_menu')
-async def scan_menu(callback : CallbackQuery):
+@user_router.callback_query(F.data.in_(['scan_again', 'back_to_scan_menu','scan_resume_menu']))
+async def scan_menu(callback : CallbackQuery, state : FSMContext):
     await callback.message.edit_text(TextMessage.SCAN_RESUME_MENU, reply_markup= await scan_menu_kb())
-
-
-@user_router.callback_query(F.data == 'back_to_scan_menu')
-async def back_to_scan_menu(callback : CallbackQuery, state : FSMContext):
     await state.clear()
-    await scan_menu(callback)
+    
