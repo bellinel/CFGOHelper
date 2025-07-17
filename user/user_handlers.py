@@ -102,10 +102,9 @@ async def start_command(message: Message, bot: Bot, state: FSMContext):
     
         
         if message.from_user.id in ADMIN_ID:
-            a = await message.answer('.', reply_markup= await get_tovmas_kb())
+            await message.answer('.', reply_markup= await get_tovmas_kb())
             await message.answer(TextMessage.START_MESSAGE, reply_markup=await get_start_kb())
-            await asyncio.sleep(0,5)
-            # await a.delete()
+            
             return
         
         if user and user.is_admin:

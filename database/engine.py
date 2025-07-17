@@ -29,7 +29,7 @@ class Database:
         """
         # Создаем URL подключения для асинхронного SQLite
         self.db_url =f"postgresql+asyncpg://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
-        # self.db_url = f"sqlite+aiosqlite:///{db_name}"
+        #self.db_url = f"sqlite+aiosqlite:///{db_name}"
         # Создаем асинхронный движок
         self.engine = create_async_engine(self.db_url, echo=False)
         # Создаем фабрику сессий
