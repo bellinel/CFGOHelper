@@ -122,8 +122,8 @@ async def tovmas_kb(message : Message):
     if message.from_user.id not in ADMIN_ID:
         return
     
-    await message.answer('a', reply_markup= ReplyKeyboardRemove())
-    await message.delete()
+    a = await message.answer('a', reply_markup= ReplyKeyboardRemove())
+    await a.delete()
     await message.answer('Админ панель', reply_markup= await get_super_admin_kb())
 
 
