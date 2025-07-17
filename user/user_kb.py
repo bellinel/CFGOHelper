@@ -12,6 +12,7 @@ async def get_start_kb():
     kb = InlineKeyboardBuilder()
     kb.button(text='Сканировать резюме', callback_data='scan_resume')
     kb.button(text='Оплата услуг', callback_data='payment')
+    
     # kb.button(text='Прислать резюме', callback_data='send_resume')
     # kb.button(text='Разместить вакансию', callback_data='post_vacancy')
     kb.adjust(1)

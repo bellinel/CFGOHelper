@@ -1,8 +1,7 @@
 
-
 import asyncio
 from aiogram import Router, F, Bot, types
-from aiogram.types import Message, CallbackQuery, LabeledPrice, PreCheckoutQuery , ReplyKeyboardRemove
+from aiogram.types import Message, CallbackQuery, LabeledPrice, PreCheckoutQuery, ReplyKeyboardRemove 
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 import os
@@ -15,7 +14,7 @@ from user.states import UserStates
 from datetime import datetime
 from utils.upload_google_drive import upload_file_async
 from utils.google_upload import upload_dict_to_sheet, get_last_row_number, append_row_to_billing_sheet
-from admin.admin_kb import get_admin_kb, get_super_admin_kb, get_tovmas_kb
+from admin.admin_kb import get_admin_kb, get_super_admin_kb
 from dotenv import load_dotenv
 import json
 load_dotenv()
@@ -80,6 +79,17 @@ async def sub(callback: CallbackQuery, bot : Bot):
                 'Количество': count,
                 'Баланс': balance}
             await append_row_to_billing_sheet(BILLING_ID, 'Лист1', data_for_billing_sheet)
+    
+    if callback.from_user.id in ADMIN_ID:
+            
+            await callback.message.answer(TextMessage.START_MESSAGE, reply_markup=await get_admin_kb())
+            
+            return
+
+
+    if user and user.is_admin:
+        await callback.message.answer(TextMessage.START_MESSAGE, reply_markup=await get_admin_kb())
+        return
 
     await callback.message.delete()
     await callback.message.answer(TextMessage.START_MESSAGE, reply_markup=await get_start_kb())
@@ -92,6 +102,7 @@ async def start_command(message: Message, bot: Bot, state: FSMContext):
     await state.clear()
     
     user = await get_user(int(message.from_user.id))
+    
     if user:
 
         member = await bot.get_chat_member(chat_id=CHANNEL_ID, user_id=message.from_user.id)
@@ -102,8 +113,8 @@ async def start_command(message: Message, bot: Bot, state: FSMContext):
     
         
         if message.from_user.id in ADMIN_ID:
-            await message.answer('.', reply_markup= await get_tovmas_kb())
-            await message.answer(TextMessage.START_MESSAGE, reply_markup=await get_start_kb())
+            
+            await message.answer(TextMessage.START_MESSAGE, reply_markup=await get_admin_kb())
             
             return
         
@@ -115,15 +126,6 @@ async def start_command(message: Message, bot: Bot, state: FSMContext):
     if not user:
         await message.answer('Пройдите регистрацию через команду /start')
         return
-
-@user_router.message(F.text == 'Админ панель')
-async def tovmas_kb(message : Message):
-    if message.from_user.id not in ADMIN_ID:
-        return
-    
-    a = await message.answer('a', reply_markup= ReplyKeyboardRemove())
-    await a.delete()
-    await message.answer('Админ панель', reply_markup= await get_super_admin_kb())
 
 
 @user_router.callback_query(F.data == 'scan_resume')
@@ -255,7 +257,7 @@ async def scan_resume_second(message: Message, state: FSMContext):
 async def back_to_main_menu(callback: CallbackQuery):
     user = await get_user(callback.from_user.id)
     if callback.from_user.id in ADMIN_ID:
-        await callback.message.edit_text(TextMessage.START_MESSAGE, reply_markup=await get_super_admin_kb())
+        await callback.message.edit_text(TextMessage.START_MESSAGE, reply_markup=await get_admin_kb())
     elif user and user.is_admin:
         await callback.message.edit_text(TextMessage.START_MESSAGE, reply_markup=await get_admin_kb())
     else:

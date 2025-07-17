@@ -4,7 +4,7 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 import asyncio
 
-from admin.admin_kb import delete_admin_kb, get_manage_admins_kb, get_manage_vip_users_kb, delete_vip_kb, get_admin_kb, get_super_admin_kb
+from admin.admin_kb import admin_kb, delete_admin_kb, get_manage_admins_kb, get_manage_vip_users_kb, delete_vip_kb, get_admin_kb, get_super_admin_kb
 from admin.admin_orm import set_admin_status, get_admins_orm, delete_admin_orm, get_vip_users_orm, delete_vip_orm, set_vip_status
 from admin.state import AdminStates
 from user.user_orm import get_user
@@ -113,4 +113,18 @@ async def set_vip_id(message: Message, state: FSMContext):
     await message.answer(f'Пользователь {user.name} - {user.tg_id}\nтеперь VIP')
     await set_vip_status(int(user_id), True)
     await state.clear()
+
+
+@admin_router.callback_query(F.data.in_(['admin_panel', 'back_to_admin_menu']))
+async def tovmas_kb(callback : CallbackQuery):
+    
+
+    if callback.from_user.id in ADMIN_ID:
+        await callback.message.edit_text('Админ панель', reply_markup= await get_super_admin_kb())
+    
+    user = await get_user(int(callback.from_user.id))
+    
+    if user and user.is_admin:
+        await callback.message.edit_text("Админ панель", reply_markup=await admin_kb())
+            
 
